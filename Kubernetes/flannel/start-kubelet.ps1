@@ -28,7 +28,6 @@ if ($RegisterOnly.IsPresent)
 $kubeletArgs = @(
     "--hostname-override=$(hostname)"
     '--v=6'
-    '--pod-infra-container-image=mcr.microsoft.com/k8s/core/pause:1.0.0'
     '--resolv-conf=""'
     '--allow-privileged=true'
     '--enable-debugging-handlers'
@@ -45,6 +44,8 @@ $kubeletArgs = @(
     '--cni-bin-dir="c:\k\cni"'
     '--cni-conf-dir="c:\k\cni\config"'
     "--node-ip=$(Get-MgmtIpAddress)"
+    '--container-runtime=remote'
+    '--container-runtime-endpoint="npipe:////./pipe/containerd-containerd"'
 )
 
 if ($KubeletFeatureGates -ne "")

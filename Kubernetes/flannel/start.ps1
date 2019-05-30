@@ -9,9 +9,54 @@
     [parameter(Mandatory = $false)] $KubeletFeatureGates = ""
 )
 
+
+
+
+Function IsContainerDUp() {
+    return get-childitem \\.\pipe\ | ?{ $_.name -eq "containerd-containerd" }
+}
+
+Function RegisterContainerDService() {
+    Write-Host "Registering containerd as a service"
+    $cdbinary = Join-Path $containerdPath containerd.exe
+    $svc = Get-Service -Name containerd -ErrorAction SilentlyContinue
+    if ($null -ne $svc) {
+        & $cdbinary --unregister-service
+    }
+    & $cdbinary --register-service
+    $svc = Get-Service -Name "containerd" -ErrorAction SilentlyContinue
+    if ($null -eq $svc) {
+        throw "containerd.exe did not installed as a service correctly."
+    }
+}
+
+$containerdPath = "$Env:ProgramFiles\containerd"
+RegisterContainerDService
+
+
+#start containerd
+if(-not (IsContainerDUp)) {
+    Write-Output "Starting containerd"
+    Start-Service -Name "containerd"
+    if(-not $?) {
+        Write-Error "Unable to start containerd"
+        Exit 1
+    }
+}
+
+# wait for containerd to accept inputs, otherwise kubectl will close immediately
+Start-Sleep 1
+while(-not (IsContainerDUp)) {
+    Write-Output "Waiting for containerd to start"
+    Start-Sleep 1
+}
+
+
 $BaseDir = "c:\k"
 $NetworkMode = $NetworkMode.ToLower()
 $NetworkName = "cbr0"
+
+
 
 $GithubSDNRepository = 'Microsoft/SDN'
 if ((Test-Path env:GITHUB_SDN_REPOSITORY) -and ($env:GITHUB_SDN_REPOSITORY -ne ''))
@@ -40,6 +85,7 @@ if (!(Test-Path $install))
 
 # Download files, move them, & prepare network
 powershell $install -NetworkMode "$NetworkMode" -clusterCIDR "$ClusterCIDR" -KubeDnsServiceIP "$KubeDnsServiceIP" -serviceCIDR "$ServiceCIDR" -InterfaceName "'$InterfaceName'" -LogDir "$LogDir"
+
 
 # Register node
 powershell $BaseDir\start-kubelet.ps1 -RegisterOnly -NetworkMode $NetworkMode

@@ -132,11 +132,11 @@ function IsNodeRegistered()
     return (!$LASTEXITCODE)
 }
 
-function RegisterNode($UseCRI = $false)
+function RegisterNode($UseCRI = $true)
 {
     if (!(IsNodeRegistered))
     {
-        $argList = @("--hostname-override=$(hostname)","--pod-infra-container-image=kubeletwin/pause","--resolv-conf=""""", "--cgroups-per-qos=false", "--enforce-node-allocatable=""""","--kubeconfig=c:\k\config")
+        $argList = @("--hostname-override=$(hostname)","--resolv-conf=""""", "--cgroups-per-qos=false", "--enforce-node-allocatable=""""","--kubeconfig=c:\k\config")
         if($UseCRI)
         {
             $argList += @("--container-runtime=remote", "--container-runtime-endpoint=npipe:////./pipe/containerd-containerd")
